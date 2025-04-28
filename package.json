@@ -1,20 +1,29 @@
 {
   "name": "dockctl",
   "version": "1.0.0",
-  "description": "",
+  "description": "Simple docker controls and system information. This code is written entirely by AI.",
+  "keywords": [],
+  "homepage": "https://github.com/warfair1337/wn-dockctl#readme",
+  "bugs": {
+    "url": "https://github.com/warfair1337/wn-dockctl/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/warfair1337/wn-dockctl.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "dockerode": "^4.0.6",
     "express": "^5.1.0",
     "os-utils": "^0.0.14",
     "systeminformation": "^5.25.11"
-  }
+  },
+  "devDependencies": {}
 }
