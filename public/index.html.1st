@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Container Dashboard</title>
+  <style>
+    table { border-collapse: collapse; width: 100% }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left }
+    button { margin: 0 2px; }
+  </style>
+</head>
+<body>
+  <h1>Docker Containers</h1>
+  <table id="ct-table">
+    <thead>
+      <tr><th>Name</th><th>Status</th><th>Uptime</th><th>Memory (MiB)</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function load() {
+      const res = await fetch('/containers');
+      const list = await res.json();
+      const tbody = document.querySelector('#ct-table tbody');
+      tbody.innerHTML = ''; 
+      list.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${c.name}</td>
+          <td>${c.state}</td>
+          <td>${c.uptime}</td>
+          <td>${c.memoryMb}</td>
+          <td>
+            ${c.state === 'running'
+               ? `<button data-action="stop">Stop</button>`
+               : `<button data-action="start">Start</button>`
+            }
+            <button data-action="restart">Restart</button>
+          </td>`;
+        tr.querySelectorAll('button').forEach(btn => {
+          btn.onclick = async () => {
+            const action = btn.dataset.action;
+            btn.disabled = true;
+            await fetch(`/containers/${c.id}/${action}`, { method: 'POST' });
+            load();
+          };
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    load();
+    setInterval(load, 5000);
+  </script>
+</body>
+</html>
+

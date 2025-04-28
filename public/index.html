@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard: Containers & GPUs</title>
+  <style>
+    :root {
+      --bg-light: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #343a40;
+      --primary: #007bff;
+      --success: #28a745;
+      --danger: #dc3545;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --padding-sm: 10px;
+      --padding-md: 16px;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-color);
+      line-height: 1.4;
+      padding: var(--padding-md);
+    }
+    #dashboard {
+      max-width: 1200px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: var(--padding-md);
+      font-size: 1.75rem;
+    }
+    .flex-row {
+      display: flex;
+      gap: var(--padding-md);
+      flex-wrap: wrap;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px var(--shadow);
+      padding: var(--padding-sm);
+      margin-bottom: var(--padding-md);
+      flex: 1 1 calc(50% - var(--padding-md));
+      min-width: 280px;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      margin-bottom: var(--padding-sm);
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 6px 8px;
+      text-align: left;
+    }
+    thead th {
+      background-color: var(--bg-light);
+      font-weight: 600;
+    }
+    tr { border-bottom: 1px solid #dee2e6; }
+    tr.running { background-color: #e6ffed; }
+    tr.exited  { background-color: #ffecec; }
+    tr:hover   { background-color: #f1f3f5; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #fff;
+    }
+    .badge-running { background-color: var(--success); }
+    .badge-exited  { background-color: var(--danger);  }
+    .btn {
+      display: inline-block;
+      padding: 6px 12px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+    .btn-primary { background-color: var(--primary); color: #fff; box-shadow: 0 2px 6px var(--shadow); }
+    .btn-success { background-color: var(--success); color: #fff; box-shadow: 0 2px 6px var(--shadow); }
+    .btn-danger  { background-color: var(--danger);  color: #fff; box-shadow: 0 2px 6px var(--shadow); }
+    .btn:hover   { transform: translateY(-1px); box-shadow: 0 4px 12px var(--shadow); }
+    .btn:active  { transform: translateY(0); box-shadow: 0 2px 6px var(--shadow); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+  </style>
+</head>
+<body>
+  <div id="dashboard">
+    <h1>System & Container Dashboard</h1>
+
+    <div class="flex-row">
+      <div class="card" id="sys-stats">
+        <div class="card-title">System Stats</div>
+        <div>Loading system stats...</div>
+      </div>
+
+      <div class="card" id="gpu-stats">
+        <div class="card-title">GPU Stats</div>
+        <div>Loading GPU stats...</div>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1 1 100%;">
+      <div class="card-title">Containers</div>
+      <table id="ct-table">
+        <thead>
+          <tr>
+            <th>Name</th><th>Status</th><th>Uptime</th><th>Mem (MiB)</th><th>GPU (MiB)</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function load() {
+      try {
+        const res = await fetch('/containers');
+        const { containers, gpus, cpu, system } = await res.json();
+
+        // System Stats
+        const sysDiv = document.getElementById('sys-stats');
+        if (cpu && system) {
+          sysDiv.innerHTML = `
+            <div class="card-title">System Stats</div>
+            <table>
+              <tr><th>CPU Model</th><td>${cpu.model}</td></tr>
+              <tr><th>Cores</th><td>${cpu.cores}</td></tr>
+              <tr><th>CPU %</th><td>${(cpu.utilization*100).toFixed(1)}%</td></tr>
+              <tr><th>Total Mem</th><td>${system.totalMb} MiB</td></tr>
+              <tr><th>Used Mem</th><td>${system.usedMb} MiB</td></tr>
+              <tr><th>Free Mem</th><td>${system.freeMb} MiB</td></tr>
+              <tr><th>Mem %</th><td>${(system.utilization*100).toFixed(1)}%</td></tr>
+            </table>`;
+        } else {
+          sysDiv.textContent = 'System stats unavailable.';
+        }
+
+        // GPU Stats
+        const gpuDiv = document.getElementById('gpu-stats');
+        if (gpus.length) {
+          const rows = gpus.map(g =>
+            `<tr><td>${g.index}–${g.name}</td><td>${g.memoryTotalMb}</td><td>${g.memoryUsedMb}</td><td>${g.memoryFreeMb}</td></tr>`
+          ).join('');
+          gpuDiv.innerHTML = `
+            <div class="card-title">GPU Stats</div>
+            <table>
+              <thead><tr><th>GPU</th><th>Total</th><th>Used</th><th>Free</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>`;
+        } else {
+          gpuDiv.textContent = 'No NVIDIA GPU detected.';
+        }
+
+        // Containers
+        const tbody = document.querySelector('#ct-table tbody');
+        tbody.innerHTML = '';
+        containers.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.classList.add(c.state==='running'? 'running':'exited');
+          tr.innerHTML = `
+            <td>${c.name}</td>
+            <td><span class="badge badge-${c.state}">${c.state}</span></td>
+            <td>${c.uptime}</td>
+            <td>${c.memoryMb}</td>
+            <td>${c.gpuMemoryMb}</td>
+            <td>
+              <button class="btn ${c.state==='running'? 'btn-danger':'btn-success'}" data-action="${c.state==='running'? 'stop':'start'}">
+                ${c.state==='running'? 'Stop':'Start'}
+              </button>
+              <button class="btn btn-primary" data-action="restart">Restart</button>
+            </td>`;
+          tr.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            await fetch(`/containers/${c.id}/${btn.dataset.action}`, { method:'POST' });
+            load();
+          }));
+          tbody.appendChild(tr);
+        });
+      } catch(err) { console.error(err); }
+    }
+    load();
+    setInterval(load, 5000);
+  </script>
+</body>
+</html>
+
