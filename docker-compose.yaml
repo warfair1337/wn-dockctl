@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  dashboard:
+    build: .
+    container_name: dockctl-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    runtime: nvidia  # requires Docker Engine with NVIDIA Container Toolkit installed
+    restart: unless-stopped
+
